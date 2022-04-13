@@ -8,6 +8,7 @@ enum sha_algos {
 	ALGO_BLAKECOIN = 0,
 	ALGO_BLAKE,
 	ALGO_BLAKE2S,
+	ALGO_ALLIUM,
 	ALGO_BMW,
 	ALGO_BASTION,
 	ALGO_C11,
@@ -38,6 +39,7 @@ enum sha_algos {
 	ALGO_NIST5,
 	ALGO_PENTABLAKE,
 	ALGO_PHI,
+	ALGO_PHI2,
 	ALGO_POLYTIMOS,
 	ALGO_QUARK,
 	ALGO_QUBIT,
@@ -50,12 +52,14 @@ enum sha_algos {
 	ALGO_SKEIN,
 	ALGO_SKEIN2,
 	ALGO_SKUNK,
+	ALGO_SONOA,
 	ALGO_S3,
 	ALGO_TIMETRAVEL,
 	ALGO_TRIBUS,
 	ALGO_BITCORE,
 	ALGO_X11EVO,
 	ALGO_X11,
+	ALGO_X12,
 	ALGO_X13,
 	ALGO_X14,
 	ALGO_X15,
@@ -69,6 +73,9 @@ enum sha_algos {
 	ALGO_WHIRLPOOLX,
 	ALGO_WILDKECCAK,
 	ALGO_ZR5,
+	ALGO_MONERO,
+	ALGO_GRAFT,
+	ALGO_STELLITE,
 	ALGO_AUTO,
 	ALGO_COUNT
 };
@@ -79,6 +86,7 @@ static const char *algo_names[] = {
 	"blakecoin",
 	"blake",
 	"blake2s",
+	"allium",
 	"bmw",
 	"bastion",
 	"c11",
@@ -87,7 +95,7 @@ static const char *algo_names[] = {
 	"deep",
 	"decred",
 	"dmd-gr",
-	"equihash",
+	"verus",
 	"fresh",
 	"fugue256",
 	"groestl",
@@ -109,6 +117,7 @@ static const char *algo_names[] = {
 	"nist5",
 	"penta",
 	"phi",
+	"phi2",
 	"polytimos",
 	"quark",
 	"qubit",
@@ -121,18 +130,20 @@ static const char *algo_names[] = {
 	"skein",
 	"skein2",
 	"skunk",
+	"sonoa",
 	"s3",
 	"timetravel",
 	"tribus",
 	"bitcore",
 	"x11evo",
 	"x11",
+	"x12",
 	"x13",
 	"x14",
 	"x15",
 	"x16r",
 	"x16s",
-	"x17",
+	"x18",
 	"vanilla",
 	"veltor",
 	"whirlcoin",
@@ -140,6 +151,9 @@ static const char *algo_names[] = {
 	"whirlpoolx",
 	"wildkeccak",
 	"zr5",
+	"monero",
+	"graft",
+	"stellite",
 	"auto", /* reserved for multi algo */
 	""
 };
@@ -198,6 +212,31 @@ static inline int algo_to_int(char* arg)
 	}
 
 	return i;
+}
+
+static inline int get_cryptonight_algo(int fork)
+{
+	int algo = ALGO_COUNT;
+
+	switch (fork) {
+		case 8:
+			algo = ALGO_GRAFT;
+			break;
+
+		case 7:
+			algo = ALGO_MONERO;
+			break;
+
+		case 3:
+			algo = ALGO_STELLITE;
+			break;
+
+		default:
+			algo = ALGO_CRYPTONIGHT;
+			break;
+	}
+
+	return algo;
 }
 
 #endif

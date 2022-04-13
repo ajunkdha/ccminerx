@@ -36,7 +36,7 @@
 #include "miner.h"
 #include "elist.h"
 
-#include "crypto/xmr-rpc.h"
+
 
 extern pthread_mutex_t stratum_sock_lock;
 extern pthread_mutex_t stratum_work_lock;
@@ -293,7 +293,7 @@ static size_t upload_data_cb(void *ptr, size_t size, size_t nmemb,
 static int seek_data_cb(void *user_data, curl_off_t offset, int origin)
 {
 	struct upload_buffer *ub = (struct upload_buffer *)user_data;
-
+	
 	switch (origin) {
 	case SEEK_SET:
 		ub->pos = (size_t)offset;
@@ -385,7 +385,7 @@ static int sockopt_keepalive_cb(void *userdata, curl_socket_t fd,
 	DWORD outputBytes;
 #endif
 
-#ifndef WIN32
+#ifndef WIN32	
 	if (unlikely(setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &keepalive,
 		sizeof(keepalive))))
 		return 1;
@@ -409,7 +409,7 @@ static int sockopt_keepalive_cb(void *userdata, curl_socket_t fd,
 	struct tcp_keepalive vals;
 	vals.onoff = 1;
 	vals.keepalivetime = tcp_keepidle * 1000;
-	vals.keepaliveinterval = tcp_keepintvl * 1000;
+	vals.keepaliveinterval = tcp_keepintvl * 1000;	
 	if (unlikely(WSAIoctl(fd, SIO_KEEPALIVE_VALS, &vals, sizeof(vals),
 		NULL, 0, &outputBytes, NULL, NULL)))
 		return 1;
@@ -561,8 +561,8 @@ static json_t *json_rpc_call(CURL *curl, const char *url,
 	res_val = json_object_get(val, "result");
 	err_val = json_object_get(val, "error");
 
-	if (!res_val ||
-		(err_val && !json_is_null(err_val))) {
+	if (!res_val || json_is_null(res_val) ||
+	    (err_val && !json_is_null(err_val))) {
 		char *s = NULL;
 
 		if (err_val) {
@@ -616,7 +616,7 @@ err_out:
 json_t *json_rpc_call_pool(CURL *curl, struct pool_infos *pool, const char *req,
 	bool longpoll_scan, bool longpoll, int *curl_err)
 {
-	char userpass[512];
+	char userpass[768];
 	// todo, malloc and store that in pool array
 	snprintf(userpass, sizeof(userpass), "%s%c%s", pool->user,
 		strlen(pool->pass)?':':'\0', pool->pass);
@@ -627,7 +627,7 @@ json_t *json_rpc_call_pool(CURL *curl, struct pool_infos *pool, const char *req,
 /* called only from longpoll thread, we have the lp_url */
 json_t *json_rpc_longpoll(CURL *curl, char *lp_url, struct pool_infos *pool, const char *req, int *curl_err)
 {
-	char userpass[512];
+	char userpass[768];
 	snprintf(userpass, sizeof(userpass), "%s%c%s", pool->user,
 		strlen(pool->pass)?':':'\0', pool->pass);
 
@@ -788,7 +788,7 @@ bool fulltest(const uint32_t *hash, const uint32_t *target)
 {
 	int i;
 	bool rc = true;
-
+	
 	for (i = 7; i >= 0; i--) {
 		if (hash[i] > target[i]) {
 			rc = false;
@@ -806,7 +806,7 @@ bool fulltest(const uint32_t *hash, const uint32_t *target)
 	if ((!rc && opt_debug) || opt_debug_diff) {
 		uint32_t hash_be[8], target_be[8];
 		char *hash_str, *target_str;
-
+		
 		for (i = 0; i < 8; i++) {
 			be32enc(hash_be + i, hash[7 - i]);
 			be32enc(target_be + i, target[7 - i]);
@@ -882,7 +882,7 @@ double target_to_diff(uint32_t* target)
 static bool send_line(curl_socket_t sock, char *s)
 {
 	ssize_t len, sent = 0;
-
+	
 	len = (ssize_t)strlen(s);
 	s[len++] = '\n';
 
@@ -1177,7 +1177,7 @@ static bool stratum_parse_extranonce(struct stratum_ctx *sctx, json_t *params, i
 	if (!xn2_size) {
 		char algo[64] = { 0 };
 		get_currentalgo(algo, sizeof(algo));
-		if (strcmp(algo, "equihash") == 0) {
+		if (strcmp(algo, "verus") == 0) {
 			int xn1_size = (int)strlen(xnonce1) / 2;
 			xn2_size = 32 - xn1_size;
 			if (xn1_size < 4 || xn1_size > 12) {
@@ -1320,8 +1320,6 @@ bool stratum_authorize(struct stratum_ctx *sctx, const char *user, const char *p
 	json_error_t err;
 	bool ret = false;
 
-	if (sctx->rpc2)
-		return rpc2_stratum_authorize(sctx, user, pass);
 
 	s = (char*)malloc(80 + strlen(user) + strlen(pass));
 	sprintf(s, "{\"id\": 2, \"method\": \"mining.authorize\", \"params\": [\"%s\", \"%s\"]}",
@@ -1442,7 +1440,7 @@ static uint32_t getblocheight(struct stratum_ctx *sctx)
 static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 {
 	const char *job_id, *prevhash, *coinb1, *coinb2, *version, *nbits, *stime;
-	const char *claim = NULL, *nreward = NULL;
+	const char *extradata = NULL, *nreward = NULL;
 	size_t coinb1_size, coinb2_size;
 	bool clean, ret = false;
 	int merkle_count, i, p=0;
@@ -1452,7 +1450,8 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 	int ntime;
 	char algo[64] = { 0 };
 	get_currentalgo(algo, sizeof(algo));
-	bool has_claim = !strcasecmp(algo, "lbry");
+	bool has_claim = !strcmp(algo, "lbry");
+	bool has_roots = !strcmp(algo, "phi2") && json_array_size(params) == 10;
 
 	if (sctx->is_equihash) {
 		return equi_stratum_notify(sctx, params);
@@ -1461,9 +1460,15 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 	job_id = json_string_value(json_array_get(params, p++));
 	prevhash = json_string_value(json_array_get(params, p++));
 	if (has_claim) {
-		claim = json_string_value(json_array_get(params, p++));
-		if (!claim || strlen(claim) != 64) {
+		extradata = json_string_value(json_array_get(params, p++));
+		if (!extradata || strlen(extradata) != 64) {
 			applog(LOG_ERR, "Stratum notify: invalid claim parameter");
+			goto out;
+		}
+	} else if (has_roots) {
+		extradata = json_string_value(json_array_get(params, p++));
+		if (!extradata || strlen(extradata) != 128) {
+			applog(LOG_ERR, "Stratum notify: invalid UTXO root parameter");
 			goto out;
 		}
 	}
@@ -1529,7 +1534,8 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 	free(sctx->job.job_id);
 	sctx->job.job_id = strdup(job_id);
 	hex2bin(sctx->job.prevhash, prevhash, 32);
-	if (has_claim) hex2bin(sctx->job.claim, claim, 32);
+	if (has_claim) hex2bin(sctx->job.extra, extradata, 32);
+	if (has_roots) hex2bin(sctx->job.extra, extradata, 64);
 
 	sctx->job.height = getblocheight(sctx);
 
@@ -1589,7 +1595,7 @@ static bool stratum_reconnect(struct stratum_ctx *sctx, json_t *params)
 		port = (int) json_integer_value(port_val);
 	if (!host || !port)
 		return false;
-
+	
 	free(sctx->url);
 	sctx->url = (char*)malloc(32 + strlen(host));
 	sprintf(sctx->url, "stratum+tcp://%s:%d", host, port);
@@ -1792,7 +1798,7 @@ static bool stratum_show_message(struct stratum_ctx *sctx, json_t *id, json_t *p
 	val = json_array_get(params, 0);
 	if (val)
 		applog(LOG_NOTICE, "MESSAGE FROM SERVER: %s", json_string_value(val));
-
+	
 	if (!id || json_is_null(id))
 		return true;
 
@@ -1894,10 +1900,7 @@ bool stratum_handle_method(struct stratum_ctx *sctx, const char *s)
 		ret = stratum_show_message(sctx, id, params);
 		goto out;
 	}
-	if (sctx->rpc2 && !strcasecmp(method, "job")) { // xmr/bbr
-		ret = rpc2_stratum_job(sctx, id, params);
-		goto out;
-	}
+
 
 	if (!ret) {
 		// don't fail = disconnect stratum on unknown (and optional?) methods
@@ -2141,7 +2144,7 @@ void do_gpu_tests(void)
 
 	memset(work.data, 0, sizeof(work.data));
 	work.data[0] = 0;
-	scanhash_hmq17(0, &work, 1, &done);
+//	scanhash_hmq17(0, &work, 1, &done);
 
 	free(work_restart);
 	work_restart = NULL;
@@ -2164,180 +2167,6 @@ void print_hash_tests(void)
 
 	printf(CL_WHT "CPU HASH ON EMPTY BUFFER RESULTS:" CL_N "\n");
 
-	bastionhash(&hash[0], &buf[0]);
-	printpfx("bastion", hash);
-
-	blake256hash(&hash[0], &buf[0], 8);
-	printpfx("blakecoin", hash);
-
-	blake256hash(&hash[0], &buf[0], 14);
-	printpfx("blake", hash);
-
-	blake2s_hash(&hash[0], &buf[0]);
-	printpfx("blake2s", hash);
-
-	bmw_hash(&hash[0], &buf[0]);
-	printpfx("bmw", hash);
-
-	c11hash(&hash[0], &buf[0]);
-	printpfx("c11", hash);
-
-	cryptolight_hash(&hash[0], &buf[0], 76);
-	printpfx("cryptolight", hash);
-
-	cryptonight_hash(&hash[0], &buf[0], 76);
-	printpfx("cryptonight", hash);
-
-	memset(buf, 0, 180);
-	decred_hash(&hash[0], &buf[0]);
-	printpfx("decred", hash);
-
-	deephash(&hash[0], &buf[0]);
-	printpfx("deep", hash);
-
-	fresh_hash(&hash[0], &buf[0]);
-	printpfx("fresh", hash);
-
-	fugue256_hash(&hash[0], &buf[0], 32);
-	printpfx("fugue256", hash);
-
-	groestlhash(&hash[0], &buf[0]);
-	printpfx("groestl", hash);
-
-	heavycoin_hash(&hash[0], &buf[0], 32);
-	printpfx("heavy", hash);
-
-	hmq17hash(&hash[0], &buf[0]);
-	printpfx("hmq1725", hash);
-
-	hsr_hash(&hash[0], &buf[0]);
-        printpfx("hsr", hash);
-
-	jha_hash(&hash[0], &buf[0]);
-	printpfx("jha", hash);
-
-	keccak256_hash(&hash[0], &buf[0]);
-	printpfx("keccak", hash);
-
-	memset(buf, 0, 128);
-	lbry_hash(&hash[0], &buf[0]);
-	printpfx("lbry", hash);
-
-	luffa_hash(&hash[0], &buf[0]);
-	printpfx("luffa", hash);
-
-	lyra2re_hash(&hash[0], &buf[0]);
-	printpfx("lyra2", hash);
-
-	lyra2v2_hash(&hash[0], &buf[0]);
-	printpfx("lyra2v2", hash);
-
-	lyra2Z_hash(&hash[0], &buf[0]);
-	printpfx("lyra2z", hash);
-
-	myriadhash(&hash[0], &buf[0]);
-	printpfx("myriad", hash);
-
-	neoscrypt(&hash[0], &buf[0], 80000620);
-	printpfx("neoscrypt", hash);
-
-	nist5hash(&hash[0], &buf[0]);
-	printpfx("nist5", hash);
-
-	pentablakehash(&hash[0], &buf[0]);
-	printpfx("pentablake", hash);
-
-	phihash(&hash[0], &buf[0]);
-	printpfx("phi", hash);
-
-	polytimos_hash(&hash[0], &buf[0]);
-	printpfx("polytimos", hash);
-
-	quarkhash(&hash[0], &buf[0]);
-	printpfx("quark", hash);
-
-	qubithash(&hash[0], &buf[0]);
-	printpfx("qubit", hash);
-
-	scrypthash(&hash[0], &buf[0]);
-	printpfx("scrypt", hash);
-
-	scryptjane_hash(&hash[0], &buf[0]);
-	printpfx("scrypt-jane", hash);
-
-	sha256d_hash(&hash[0], &buf[0]);
-	printpfx("sha256d", hash);
-
-	sha256t_hash(&hash[0], &buf[0]);
-	printpfx("sha256t", hash);
-
-	blake2b_hash(&hash[0], &buf[0]);
-	printpfx("sia", hash);
-
-	sibhash(&hash[0], &buf[0]);
-	printpfx("sib", hash);
-
-	skeincoinhash(&hash[0], &buf[0]);
-	printpfx("skein", hash);
-
-	skein2hash(&hash[0], &buf[0]);
-	printpfx("skein2", hash);
-
-	skunk_hash(&hash[0], &buf[0]);
-	printpfx("skunk", hash);
-
-	s3hash(&hash[0], &buf[0]);
-	printpfx("S3", hash);
-
-	timetravel_hash(&hash[0], &buf[0]);
-	printpfx("timetravel", hash);
-
-	bitcore_hash(&hash[0], &buf[0]);
-	printpfx("bitcore", hash);
-
-	blake256hash(&hash[0], &buf[0], 8);
-	printpfx("vanilla", hash);
-
-	tribus_hash(&hash[0], &buf[0]);
-	printpfx("tribus", hash);
-
-	veltorhash(&hash[0], &buf[0]);
-	printpfx("veltor", hash);
-
-	wcoinhash(&hash[0], &buf[0]);
-	printpfx("whirlpool", hash);
-
-	//whirlxHash(&hash[0], &buf[0]);
-	//printpfx("whirlpoolx", hash);
-
-	x11evo_hash(&hash[0], &buf[0]);
-	printpfx("x11evo", hash);
-
-	x11hash(&hash[0], &buf[0]);
-	printpfx("X11", hash);
-
-	x13hash(&hash[0], &buf[0]);
-	printpfx("X13", hash);
-
-	x14hash(&hash[0], &buf[0]);
-	printpfx("X14", hash);
-
-	x15hash(&hash[0], &buf[0]);
-	printpfx("X15", hash);
-
-	x16r_hash(&hash[0], &buf[0]);
-	printpfx("X16r", hash);
-
-	x16s_hash(&hash[0], &buf[0]);
-	printpfx("X16s", hash);
-
-	x17hash(&hash[0], &buf[0]);
-	printpfx("X17", hash);
-
-	//memcpy(buf, zrtest, 80);
-	zr5hash(&hash[0], &buf[0]);
-	//zr5hash_pok(&hash[0], (uint32_t*) &buf[0]);
-	printpfx("ZR5", hash);
 
 	printf("\n");
 

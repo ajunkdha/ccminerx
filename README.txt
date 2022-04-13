@@ -1,5 +1,5 @@
 
-ccminer 2.2.5 (Feb 2018)                            "x16r algo"
+ccminer 2.3                     "phi2 and cryptonight variants"
 ---------------------------------------------------------------
 
 ***************************************************************
@@ -41,19 +41,21 @@ Keccak (Maxcoin)
 Pentablake (Blake 512 x5)
 1Coin Triple S
 Neoscrypt (FeatherCoin)
-Revolver (X11evo)
+x11evo (Revolver)
+phi2 (LUXCoin)
 Scrypt and Scrypt:N
 Scrypt-Jane (Chacha)
-Sibcoin (sib)
+sib (Sibcoin)
 Skein (Skein + SHA)
 Signatum (Skein cubehash fugue Streebog)
+SonoA (Sono)
 Tribus (JH, keccak, simd)
 Woodcoin (Double Skein)
 Vanilla (Blake256 8-rounds - double sha256)
 Vertcoin Lyra2RE
 Ziftrcoin (ZR5)
 Boolberry (Wild Keccak)
-Monero (Cryptonight)
+Monero (Cryptonight v7 with -a monero)
 Aeon (Cryptonight-lite)
 
 where some of these coins have a VERY NOTABLE nVidia advantage
@@ -73,14 +75,15 @@ This code is based on the pooler cpuminer and inherits
 its command line interface and options.
 
   -a, --algo=ALGO       specify the algorithm to use
+                          allium      use to mine Garlic
                           bastion     use to mine Joincoin
                           bitcore     use to mine Bitcore's Timetravel10
                           blake       use to mine Saffroncoin (Blake256)
                           blakecoin   use to mine Old Blake 256
                           blake2s     use to mine Nevacoin (Blake2-S 256)
                           bmw         use to mine Midnight
-                          cryptolight use to mine AEON cryptonight (MEM/2)
-                          cryptonight use to mine XMR cryptonight, Bytecoin, Dash, DigitalNote, etc
+                          cryptolight use to mine AEON cryptonight variant 1 (MEM/2)
+                          cryptonight use to mine original cryptonight
                           c11/flax    use to mine Chaincoin and Flax
                           decred      use to mine Decred 180 bytes Blake256-14
                           deep        use to mine Deepcoin
@@ -98,11 +101,13 @@ its command line interface and options.
                           lyra2       use to mine CryptoCoin
                           lyra2v2     use to mine Vertcoin
                           lyra2z      use to mine Zerocoin (XZC)
+                          monero      use to mine Monero (XMR)
                           myr-gr      use to mine Myriad-Groest
                           neoscrypt   use to mine FeatherCoin, Trezarcoin, Orbitcoin, etc
                           nist5       use to mine TalkCoin
                           penta       use to mine Joincoin / Pentablake
-                          phi         use to mine LUXCoin
+                          phi1612     use to mine Seraph
+                          phi2        use to mine LUXCoin
                           polytimos   use to mine Polytimos
                           quark       use to mine Quarkcoin
                           qubit       use to mine Qubit
@@ -116,13 +121,18 @@ its command line interface and options.
                           skein       use to mine Skeincoin
                           skein2      use to mine Woodcoin
                           skunk       use to mine Signatum
+                          sonoa       use to mine Sono
+                          stellite    use to mine Stellite (a cryptonight variant)
                           timetravel  use to mine MachineCoin
                           tribus      use to mine Denarius
                           x11evo      use to mine Revolver
                           x11         use to mine DarkCoin
-                          x14         use to mine X14Coin
+                          x12         use to mine GalaxyCash
+                          x13         use to mine X13
+                          x14         use to mine X14
                           x15         use to mine Halcyon
                           x16r        use to mine Raven
+                          x16s        use to mine Pigeon and Eden
                           x17         use to mine X17
                           vanilla     use to mine Vanilla (Blake256)
                           veltor      use to mine VeltorCoin
@@ -278,10 +288,22 @@ so we can more efficiently implement new algorithms using the latest hardware
 features.
 
 >>> RELEASE HISTORY <<<
-  Feb. 2017       v2.2.5
-                  New x16r algo
+  June 23th 2018  v2.3
+                  Handle phi2 header variation for smart contracts
+                  Handle monero, stellite, graft and cryptolight variants
+                  Handle SonoA algo
 
-  Jan. 04th 2017  v2.2.4
+  June 10th 2018  v2.2.6
+                  New phi2 algo for LUX
+                  New allium algo for Garlic
+
+  Apr. 02nd 2018  v2.2.5
+                  New x16r algo for Raven
+                  New x16s algo for Pigeon and Eden
+                  New x12 algo for Galaxycash
+                  Equihash (SIMT) sync issues for the Volta generation
+
+  Jan. 04th 2018  v2.2.4
                   Improve lyra2v2
                   Higher keccak default intensity
                   Drop SM 2.x support by default, for CUDA 9 and more recent
